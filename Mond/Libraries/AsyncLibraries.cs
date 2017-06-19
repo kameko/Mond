@@ -150,7 +150,7 @@ namespace Mond.Libraries
         /// </summary>
         public static CancellationToken? AsCancellationToken(MondValue value)
         {
-            if (value == null)
+            if (value == MondValue.Undefined)
                 return CancellationToken.None;
 
             if (value.Type != MondValueType.Object)
