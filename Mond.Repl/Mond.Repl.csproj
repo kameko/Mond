@@ -6,6 +6,7 @@
     <RuntimeIdentifiers>any</RuntimeIdentifiers>
     <AssemblyVersion>0.6.2</AssemblyVersion>
     <DebugType>portable</DebugType>
+    <LangVersion>latest</LangVersion>
   </PropertyGroup>
 
   <ItemGroup>

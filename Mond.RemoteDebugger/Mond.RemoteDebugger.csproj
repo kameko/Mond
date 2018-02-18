@@ -4,6 +4,7 @@
     <TargetFrameworks>net46;netstandard1.3</TargetFrameworks>
     <AssemblyVersion>0.6.2</AssemblyVersion>
     <DebugType>portable</DebugType>
+    <LangVersion>latest</LangVersion>
 	
 	  <!-- NuGet Package -->
     <PackageId>Mond.RemoteDebugger</PackageId>

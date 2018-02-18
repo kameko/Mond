@@ -7,7 +7,7 @@ using System.Runtime.InteropServices;
 namespace Mond
 {
     [StructLayout(LayoutKind.Explicit)]
-    public partial struct MondValue : IEquatable<MondValue>, IComparable<MondValue>
+    public readonly partial struct MondValue : IEquatable<MondValue>, IComparable<MondValue>
     {
         public static readonly MondValue Undefined = new MondValue(MondValueType.Undefined);
         public static readonly MondValue Null = new MondValue(MondValueType.Null);
@@ -164,7 +164,7 @@ namespace Mond
         /// <summary>
         /// Get or set values in the Object or Array or its' prototype.
         /// </summary>
-        public MondValue this[MondValue index]
+        public MondValue this[in MondValue index]
         {
             get
             {
@@ -395,7 +395,7 @@ namespace Mond
 
         public bool IsLocked => Type == MondValueType.Object && ObjectValue.Locked;
 
-        public bool Contains(MondValue search)
+        public bool Contains(in MondValue search)
         {
             if (Type == MondValueType.String && search.Type == MondValueType.String)
                 return _stringValue.Contains(search._stringValue);
@@ -506,7 +506,7 @@ namespace Mond
             throw new MondRuntimeException(RuntimeError.SliceWrongType, Type.GetName());
         }
 
-        public bool Equals(MondValue other)
+        public bool Equals(in MondValue other)
         {
             if (Type == MondValueType.Object)
             {
@@ -536,13 +536,17 @@ namespace Mond
             }
         }
 
-        public int CompareTo(MondValue other)
+        bool IEquatable<MondValue>.Equals(MondValue other) => Equals(other);
+
+        public int CompareTo(in MondValue other)
         {
             if (this == other)
                 return 0;
 
             return this > other ? 1 : -1;
         }
+
+        int IComparable<MondValue>.CompareTo(MondValue other) => CompareTo(other);
 
         public override bool Equals(object other)
         {
@@ -628,7 +632,7 @@ namespace Mond
             }
         }
 
-        private MondValue CheckWrapFunction(MondValue value)
+        private MondValue CheckWrapFunction(in MondValue value)
         {
             if (value.Type != MondValueType.Function)
                 return value;
