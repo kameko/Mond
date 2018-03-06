@@ -2,7 +2,7 @@
 
   <PropertyGroup>
     <OutputType>Exe</OutputType>
-    <TargetFramework>netcoreapp1.1</TargetFramework>
+    <TargetFrameworks>net46;netcoreapp1.1;netcoreapp2.0</TargetFrameworks>
     <RuntimeIdentifiers>any</RuntimeIdentifiers>
     <DebugType>portable</DebugType>
     <LangVersion>latest</LangVersion>

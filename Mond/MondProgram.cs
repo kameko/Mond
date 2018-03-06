@@ -15,15 +15,26 @@ namespace Mond
         private const byte FormatVersion = 6;
 
         internal readonly byte[] Bytecode;
-        internal readonly List<MondValue> Numbers;
-        internal readonly List<MondValue> Strings;
+        internal readonly MondValue[] Numbers;
+        internal readonly MondValue[] Strings;
         public MondDebugInfo DebugInfo { get; }
 
-        internal MondProgram(byte[] bytecode, IEnumerable<double> numbers, IEnumerable<string> strings, MondDebugInfo debugInfo = null)
+        internal MondProgram(byte[] bytecode, IList<double> numbers, IList<string> strings, MondDebugInfo debugInfo = null)
         {
             Bytecode = bytecode;
-            Numbers = numbers.Select(n => new MondValue(n)).ToList();
-            Strings = strings.Select(s => new MondValue(s)).ToList();
+
+            Numbers = new MondValue[numbers.Count];
+            for (var i = 0; i < Numbers.Length; i++)
+            {
+                Numbers[i] = new MondValue(numbers[i]);
+            }
+
+            Strings = new MondValue[strings.Count];
+            for (var i = 0; i < Strings.Length; i++)
+            {
+                Strings[i] = new MondValue(strings[i]);
+            }
+            
             DebugInfo = debugInfo;
         }
 
@@ -51,13 +62,13 @@ namespace Mond
             writer.Write(FormatVersion);
             writer.Write(DebugInfo != null);
 
-            writer.Write(Strings.Count);
+            writer.Write(Strings.Length);
             foreach (var str in Strings)
             {
                 writer.Write(str.ToString());
             }
 
-            writer.Write(Numbers.Count);
+            writer.Write(Numbers.Length);
             foreach (var num in Numbers)
             {
                 writer.Write((double)num);

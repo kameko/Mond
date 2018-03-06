@@ -1,12 +1,12 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFrameworks>net46;netstandard1.3</TargetFrameworks>
+    <TargetFrameworks>net46;netstandard1.3;netstandard2.0</TargetFrameworks>
     <AssemblyVersion>0.6.2</AssemblyVersion>
     <DebugType>portable</DebugType>
-    
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
     <LangVersion>latest</LangVersion>
-    <DefineConstants>NO_EXPRESSIONS</DefineConstants>
+    <DefineConstants>NO_EXPRESSIONS;NO_DEBUG</DefineConstants>
 
     <!-- NuGet Package -->
     <PackageId>Mond</PackageId>
@@ -18,6 +18,10 @@
     <PackageLicenseUrl>https://raw.githubusercontent.com/Rohansi/Mond/master/LICENSE</PackageLicenseUrl>
     <PackageProjectUrl>https://github.com/Rohansi/Mond</PackageProjectUrl>
     <PackageTags>Mond Scripting</PackageTags>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" '$(AllowUnsafeBlocks)' == 'false' ">
+    <DefineConstants>$(DefineConstants);NO_UNSAFE</DefineConstants>
   </PropertyGroup>
 
   <ItemGroup Condition=" '$(TargetFramework)' == 'netstandard1.3' ">

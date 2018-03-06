@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Mond.VirtualMachine;
 using Mond.VirtualMachine.Prototypes;
 using System.Runtime.InteropServices;
+using System.Runtime.CompilerServices;
+using Closure = Mond.VirtualMachine.Closure;
 
 namespace Mond
 {
@@ -13,10 +15,23 @@ namespace Mond
         public static readonly MondValue Null = new MondValue(MondValueType.Null);
         public static readonly MondValue True = new MondValue(MondValueType.True);
         public static readonly MondValue False = new MondValue(MondValueType.False);
-        
+
+        // sign, exponent, and high bit of fraction set
+        // if value >= this then its not a double. MondValueType will be stored in the low bits of the number.
+        //private const ulong TagMin = 0b11111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000;
+
+        // mask out the bits that determine if this is tagged
+        //private const ulong TagMask = ~TagMin;
+
+        // the value of NaN. this needs to be less than TagMin. sign doesn't matter for NaN so we have it unset here to make it less.
+        //private const ulong TagNan = 0b01111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000;
+
+        //[FieldOffset(0)]
+        //private readonly ulong _asLong;
+
         [FieldOffset(0)]
-        public readonly MondValueType Type;
-        
+        private readonly MondValueType _type;
+
         [FieldOffset(8)]
         private readonly double _numberValue;
         
@@ -32,23 +47,15 @@ namespace Mond
         [FieldOffset(16)]
         internal readonly Closure FunctionValue;
 
-        private MondValue(MondValueType type, bool dummy)
-        {
-            Type = type;
-            _numberValue = 0;
-            ObjectValue = null;
-            ArrayValue = null;
-            _stringValue = null;
-            FunctionValue = null;
-        }
-
         /// <summary>
         /// Construct a new MondValue. Should only be used for Object or Array.
         /// </summary>
         public MondValue(MondValueType type)
-            : this(type, false)
         {
-            Type = type;
+            //_numberValue = 0;
+            //_asLong = TagMin + (ulong)type;
+            _type = type;
+            _numberValue = 0;
 
             switch (type)
             {
@@ -56,13 +63,23 @@ namespace Mond
                 case MondValueType.Null:
                 case MondValueType.True:
                 case MondValueType.False:
+                    ObjectValue = null;
+                    ArrayValue = null;
+                    _stringValue = null;
+                    FunctionValue = null;
                     break;
 
                 case MondValueType.Object:
+                    ArrayValue = null;
+                    _stringValue = null;
+                    FunctionValue = null;
                     ObjectValue = new VirtualMachine.Object();
                     break;
 
                 case MondValueType.Array:
+                    ObjectValue = null;
+                    _stringValue = null;
+                    FunctionValue = null;
                     ArrayValue = new List<MondValue>();
                     break;
 
@@ -84,20 +101,44 @@ namespace Mond
         /// Construct a new Number MondValue with the specified value.
         /// </summary>
         public MondValue(double value)
-            : this(MondValueType.Number, false)
         {
+            /*if (double.IsNaN(value))
+            {
+                _numberValue = 0;
+                _asLong = TagNan;
+            }
+            else
+            {
+                _asLong = 0;
+                _numberValue = value;
+            }*/
+
+            _type = MondValueType.Number;
             _numberValue = value;
+            
+            ObjectValue = null;
+            ArrayValue = null;
+            _stringValue = null;
+            FunctionValue = null;
         }
 
         /// <summary>
         /// Construct a new String MondValue with the specified value.
         /// </summary>
         public MondValue(string value)
-            : this(MondValueType.String, false)
         {
             if (ReferenceEquals(value, null))
                 throw new ArgumentNullException(nameof(value));
-            
+
+            //_numberValue = 0;
+            //_asLong = TagMin + (ulong)MondValueType.String;
+            _type = MondValueType.String;
+            _numberValue = 0;
+            _stringValue = value;
+
+            ObjectValue = null;
+            ArrayValue = null;
+            FunctionValue = null;
             _stringValue = value;
         }
 
@@ -105,11 +146,18 @@ namespace Mond
         /// Construct a new Function MondValue with the specified value.
         /// </summary>
         public MondValue(MondFunction function)
-            : this(MondValueType.Function, false)
         {
             if (ReferenceEquals(function, null))
                 throw new ArgumentNullException(nameof(function));
-            
+
+            //_numberValue = 0;
+            //_asLong = TagMin + (ulong)MondValueType.Function;
+            _type = MondValueType.Function;
+            _numberValue = 0;
+
+            ObjectValue = null;
+            ArrayValue = null;
+            _stringValue = null;
             FunctionValue = new Closure(function);
         }
 
@@ -118,11 +166,18 @@ namespace Mond
         /// bind themselves to their parent object when being retrieved.
         /// </summary>
         public MondValue(MondInstanceFunction function)
-            : this(MondValueType.Function, false)
         {
             if (ReferenceEquals(function, null))
                 throw new ArgumentNullException(nameof(function));
-            
+
+            //_numberValue = 0;
+            //_asLong = TagMin + (ulong)MondValueType.Function;
+            _type = MondValueType.Function;
+            _numberValue = 0;
+
+            ObjectValue = null;
+            ArrayValue = null;
+            _stringValue = null;
             FunctionValue = new Closure(function);
         }
 
@@ -156,9 +211,26 @@ namespace Mond
         }
 
         internal MondValue(Closure closure)
-            : this(MondValueType.Function, false)
         {
+            //_numberValue = 0;
+            //_asLong = TagMin + (ulong)MondValueType.Function;
+            _type = MondValueType.Function;
+            _numberValue = 0;
+
+            ObjectValue = null;
+            ArrayValue = null;
+            _stringValue = null;
             FunctionValue = closure;
+        }
+
+        /// <summary>
+        /// Gets the type of this value.
+        /// </summary>
+        public MondValueType Type
+        {
+            [MethodImpl(MethodImplOptions.AggressiveInlining)]
+            //get => _asLong < TagMin ? MondValueType.Number : (MondValueType)(_asLong & TagMask);
+            get => _type;
         }
 
         /// <summary>
@@ -189,20 +261,17 @@ namespace Mond
                 }
 
                 var i = 0;
+                //ref var prototype = ref GetPrototypeReadOnly();
                 var prototype = Prototype;
 
-                while (prototype != Undefined)
+                while (prototype.Type == MondValueType.Object)
                 {
-                    var currentValue = prototype;
-
-                    if (currentValue.Type != MondValueType.Object)
-                        break;
-
-                    var currentObjValue = currentValue.ObjectValue;
+                    var currentObjValue = prototype.ObjectValue;
                     if (currentObjValue.Values.TryGetValue(index, out indexValue))
                         return CheckWrapFunction(indexValue);
 
-                    prototype = currentValue.Prototype;
+                    //prototype = ref currentValue.GetPrototypeReadOnly(); // TODO: ref reassignment
+                    prototype = prototype.Prototype;
                     i++;
 
                     if (i > 100)
@@ -245,24 +314,19 @@ namespace Mond
                 var i = 0;
                 var prototype = Prototype;
 
-                while (prototype != Undefined)
+                while (prototype.Type == MondValueType.Object)
                 {
-                    var currentValue = prototype;
-
-                    if (currentValue.Type != MondValueType.Object)
-                        break;
-
-                    var values = currentValue.ObjectValue.Values;
+                    var values = prototype.ObjectValue.Values;
                     if (values.ContainsKey(index))
                     {
-                        if (currentValue.ObjectValue.Locked)
+                        if (prototype.ObjectValue.Locked)
                             break; // hit a wall in the prototype chain, don't continue
 
                         values[index] = value;
                         return;
                     }
 
-                    prototype = currentValue.Prototype;
+                    prototype = prototype.Prototype;
                     i++;
 
                     if (i > 100)
@@ -308,7 +372,34 @@ namespace Mond
 
                 return ArrayValue;
             }
-        } 
+        }
+
+        private ref MondValue GetPrototypeReadOnly()
+        {
+            switch (Type)
+            {
+                case MondValueType.Object:
+                    if (ObjectValue.HasPrototype)
+                        return ref ObjectValue.Prototype;
+
+                    return ref ObjectPrototype.ValueReadOnly;
+
+                case MondValueType.Array:
+                    return ref ArrayPrototype.ValueReadOnly;
+
+                case MondValueType.Number:
+                    return ref NumberPrototype.ValueReadOnly;
+
+                case MondValueType.String:
+                    return ref StringPrototype.ValueReadOnly;
+
+                case MondValueType.Function:
+                    return ref FunctionPrototype.ValueReadOnly;
+
+                default:
+                    return ref ValuePrototype.ValueReadOnly;
+            }
+        }
 
         /// <summary>
         /// Gets the prototype object for this value.
@@ -321,29 +412,7 @@ namespace Mond
         /// </summary>
         public MondValue Prototype
         {
-            get
-            {
-                switch (Type)
-                {
-                    case MondValueType.Object:
-                        return ObjectValue.Prototype ?? ObjectPrototype.Value;
-
-                    case MondValueType.Array:
-                        return ArrayPrototype.Value;
-
-                    case MondValueType.Number:
-                        return NumberPrototype.Value;
-
-                    case MondValueType.String:
-                        return StringPrototype.Value;
-
-                    case MondValueType.Function:
-                        return FunctionPrototype.Value;
-
-                    default:
-                        return ValuePrototype.Value;
-                }
-            }
+            get => GetPrototypeReadOnly();
             set
             {
                 if (Type != MondValueType.Object)
@@ -352,11 +421,19 @@ namespace Mond
                 if (ObjectValue.Locked)
                     throw new MondRuntimeException(RuntimeError.ObjectIsLocked);
 
+                if (value.Type == MondValueType.Undefined)
+                {
+                    ObjectValue.HasPrototype = false;
+                    ObjectValue.Prototype = Undefined;
+                    return;
+                }
+
                 if (value.Type == MondValueType.Null)
                     value = ValuePrototype.Value;
                 else if (value.Type != MondValueType.Object)
                     throw new MondRuntimeException("Prototypes must be an object, null, or undefined");
 
+                ObjectValue.HasPrototype = true;
                 ObjectValue.Prototype = value;
             }
         }
@@ -508,16 +585,14 @@ namespace Mond
 
         public bool Equals(in MondValue other)
         {
-            if (Type == MondValueType.Object)
-            {
-                if (TryDispatch("__eq", out var result, this, other))
-                    return result;
-
-                return other.Type == MondValueType.Object && ReferenceEquals(ObjectValue, other.ObjectValue);
-            }
-
             switch (Type)
             {
+                case MondValueType.Object:
+                    if (TryDispatch("__eq", out var result, this, other))
+                        return result;
+
+                    return other.Type == MondValueType.Object && ReferenceEquals(ObjectValue, other.ObjectValue);
+
                 case MondValueType.Array:
                     return other.Type == MondValueType.Array && ReferenceEquals(ArrayValue, other.ArrayValue);
 
@@ -676,8 +751,11 @@ namespace Mond
 
                 current = current.Prototype;
 
-                if (current == Undefined || current.Type != MondValueType.Object)
+                if (current.Type != MondValueType.Object)
+                {
+                    callable = Undefined;
                     break;
+                }
             }
 
             if (callable == Undefined)
