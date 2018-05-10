@@ -261,8 +261,7 @@ namespace Mond
                 }
 
                 var i = 0;
-                //ref var prototype = ref GetPrototypeReadOnly();
-                var prototype = Prototype;
+                ref var prototype = ref GetPrototypeReadOnly();
 
                 while (prototype.Type == MondValueType.Object)
                 {
@@ -270,8 +269,7 @@ namespace Mond
                     if (currentObjValue.Values.TryGetValue(index, out indexValue))
                         return CheckWrapFunction(indexValue);
 
-                    //prototype = ref currentValue.GetPrototypeReadOnly(); // TODO: ref reassignment
-                    prototype = prototype.Prototype;
+                    prototype = ref prototype.GetPrototypeReadOnly();
                     i++;
 
                     if (i > 100)
@@ -312,7 +310,7 @@ namespace Mond
                 }
 
                 var i = 0;
-                var prototype = Prototype;
+                ref var prototype = ref GetPrototypeReadOnly();
 
                 while (prototype.Type == MondValueType.Object)
                 {
@@ -326,7 +324,7 @@ namespace Mond
                         return;
                     }
 
-                    prototype = prototype.Prototype;
+                    prototype = ref prototype.GetPrototypeReadOnly();
                     i++;
 
                     if (i > 100)
@@ -339,7 +337,7 @@ namespace Mond
                 if (ObjectValue.Locked)
                     throw new MondRuntimeException(RuntimeError.ObjectIsLocked);
 
-                if (TryDispatch("__set", out var _, this, index, value))
+                if (TryDispatch("__set", out _, this, index, value))
                     return;
 
                 ObjectValue.Values[index] = value;
@@ -736,7 +734,7 @@ namespace Mond
             MondState state = null;
             MondValue callable;
 
-            var current = this;
+            ref readonly var current = ref this;
             while (true)
             {
                 if (current.Object.TryGetValue(name, out callable))
@@ -749,7 +747,7 @@ namespace Mond
                     break;
                 }
 
-                current = current.Prototype;
+                current = ref current.GetPrototypeReadOnly();
 
                 if (current.Type != MondValueType.Object)
                 {
